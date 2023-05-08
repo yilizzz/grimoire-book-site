@@ -4,12 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "build": "cd frontend && npm run build",
-    "install-frontend": "cd frontend && npm install",
-    "heroku-postbuild": "npm run install-frontend && npm run build",
-    "server": "node server.js",
-    "develop": "concurrently --kill-others-on-fail \"npm run server\" \"npm run start --prefix frontend\"",
-    "start": "concurrently --kill-others-on-fail \"npm run server\" \"npm run start --prefix frontend\"",
+    "start": "node server.js",
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix frontend npm run build --prefix frontend",
 
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -26,5 +22,6 @@
   },
   "engines": {
     "node": "18.13.0"
-  }
+  },
+  "proxy": "http://localhost:4000"
 }
