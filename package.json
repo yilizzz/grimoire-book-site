@@ -4,10 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "dev": "cd frontend && react-scripts start",
-    "start": "serve -s frontend/build",
-    "build": "cd frontend && react-scripts build",
-    "heroku-postbuild": "npm run build"
+    "start": "node server.js",
+    "heroku-postbuild": "cd frontend && npm install && npm run build"
   },
   "author": "",
   "license": "ISC",
