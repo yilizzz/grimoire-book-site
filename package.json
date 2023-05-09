@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "heroku-postbuild": "cd frontend && npm install && npm run build"
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix frontend && npm run build --prefix frontend"
   },
   "author": "",
   "license": "ISC",
@@ -20,6 +20,7 @@
     "sharp": "^0.32.0"
   },
   "engines": {
-    "node": "18.13.0"
+    "node": "18.13.0",
+    "npm": "8.19.3"
   }
 }
