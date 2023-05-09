@@ -4,7 +4,7 @@ import { solid } from '@fortawesome/fontawesome-svg-core/import.macro';
 import React from 'react';
 import styles from '../components/Books/BookItem/BookItem.module.css';
 
-// eslint-disable-next-line import/prefer-default-export
+// eslint-disable import/prefer-default-export
 export function displayStars(rating) {
   const stars = [];
   for (let i = 0; i < 5; i += 1) {
