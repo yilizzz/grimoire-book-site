@@ -1,5 +1,5 @@
 const { error } = require('console');
-const Book = require('../models/book');
+const Book = require('../models/books');
 const fs = require('fs');
 
 // Create a new book
