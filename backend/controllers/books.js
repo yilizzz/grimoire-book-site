@@ -2,6 +2,20 @@ const { error } = require('console');
 const Book = require('../models/books');
 const fs = require('fs');
 
+// const AWS = require('aws-sdk');
+// console.log(process.env.AWS_REGION);
+// const s3 = new AWS.S3({
+//   region: process.env.AWS_REGION,
+//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//   signatureVersion: "v4",
+// });
+
+require('dotenv').config();
+
+const bucketName = process.env.S3_BUCKET_NAME;
+const region = process.env.AWS_REGION;
+
 // Create a new book
 exports.createBook = (req, res, next) => {
     const bookObject = JSON.parse(req.body.book);
@@ -25,7 +39,7 @@ exports.createBook = (req, res, next) => {
     const book = new Book({
         ...bookObject,
         userId: req.auth.userId,
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        imageUrl: `https://${bucketName}.s3.${region}.amazonaws.com/${req.file.filename}`
     });
   
     book.save()
@@ -77,29 +91,38 @@ exports.createBook = (req, res, next) => {
     );
   };
 // Delete one book
-  exports.deleteBook = (req, res, next) => {
+  exports.deleteBook =  (req, res, next) => {
+    
     Book.findOne({ _id: req.params.id})
-        .then(book => {
+        .then(async book => {
             if (book.userId != req.auth.userId) {
                 res.status(403).json({message: 'unauthorized request'});
             } else {
-                const filename = book.imageUrl.split('/images/')[1];
-                fs.unlink(`images/${filename}`, () => {
-                    Book.deleteOne({_id: req.params.id})
-                        .then(() => { res.status(200).json({message: 'Objet supprimé !'})})
-                        .catch(error => res.status(401).json({ error }));
-                });
+              //   await s3.deleteObject({
+              //     Bucket: process.env.S3_BUCKET_NAME,
+              //     Key: book.imageUrl
+              // }, (err, data) => {
+              //     if (err) {
+              //         // Handle error
+              //         res.status(401).json({message: `aws error : ${error}`});
+              //     } else {
+                      // Delete book from database
+                      Book.deleteOne({_id: req.params.id})
+                          .then(() => { res.status(200).json({message: 'Objet supprimé !'})})
+                          .catch(error => res.status(401).json({ error }));
+              //     }
+              // }).promise();
             }
         })
         .catch( error => {
-            res.status(500).json({ error });
+          res.status(500).json({ error });
         });
  };
 // Update one book
  exports.modifyBook = ( req, res, next ) => {
     const bookObject = req.file ? {
         ...JSON.parse(req.body.book),
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        imageUrl: `https://${bucketName}.s3.${region}.amazonaws.com/${req.file.filename}`
     } : { ...req.body };
     // Check if the form data fields is empty
     const requiredFields = ['title', 'author', 'year', 'genre'];

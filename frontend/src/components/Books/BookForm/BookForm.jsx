@@ -44,10 +44,31 @@ function BookForm({ book, validate }) {
   }, [formState]);
 
   const onSubmit = async (data) => {
+  
+    // Check if the form data fields is empty
+    const requiredFields = ['title', 'author', 'year', 'genre'];
+    const missingFields = requiredFields.filter((field) => !data[field]);
+    if (missingFields.length > 0) {
+      alert (`Donnée manquante: ${missingFields.join(', ')}` );
+      return;
+    }
+    
+    // Check if the year of publication data is an integer number
+    if ( !Number.isInteger(Number(data['year']))) {
+      alert(`L'année de publication doit être un nombre.` );
+      return;
+    }
     // When we create a new book
     if (!book) {
+      // image upload check
       if (!data.file[0]) {
         alert('Vous devez ajouter une image');
+        return;
+      }
+      //check if the rating is empty
+      if ( !data.rating ) {
+        alert(`Donnée manquante: une note de livre.` );
+        return;
       }
       const newBook = await addBook(data);
       if (!newBook.error) {
