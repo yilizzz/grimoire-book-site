@@ -2,155 +2,144 @@ const { error } = require('console');
 const Book = require('../models/books');
 const fs = require('fs');
 
-// const AWS = require('aws-sdk');
-// console.log(process.env.AWS_REGION);
-// const s3 = new AWS.S3({
-//   region: process.env.AWS_REGION,
-//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-//   signatureVersion: "v4",
-// });
-
-require('dotenv').config();
-
 const bucketName = process.env.S3_BUCKET_NAME;
 const region = process.env.AWS_REGION;
 
 // Create a new book
 exports.createBook = (req, res, next) => {
-    const bookObject = JSON.parse(req.body.book);
-    // Check if the form data fields is empty
-    const requiredFields = ['title', 'author', 'year', 'genre'];
-    const missingFields = requiredFields.filter((field) => !bookObject[field]);
-    if (missingFields.length > 0) {
-      return res.status(400).json({ message: `Donnée manquante: ${missingFields.join(', ')}` });
-    }
-    //check if the rating is empty
-    if ( bookObject.ratings[0].grade === 0) {
-      return res.status(400).json({ message: `Donnée manquante: une note de livre.` });
-    }
-    // Check if the year of publication data is an integer number
-    if ( !Number.isInteger(Number(bookObject['year']))) {
-      return res.status(400).json({ message: `L'année de publication doit être un nombre.` });
-    }
-    // Reorganize book's data
-    delete bookObject._id;
-    delete bookObject._userId;
-    const book = new Book({
-        ...bookObject,
-        userId: req.auth.userId,
-        imageUrl: `https://${bucketName}.s3.${region}.amazonaws.com/${req.file.filename}`
-    });
-  
-    book.save()
-    .then(() => { res.status(201).json({message: 'Objet enregistré !'})})
-    .catch(error => { res.status(400).json( { error })})
- };
+  const bookObject = JSON.parse(req.body.book);
+  // Check if the form data fields is empty
+  const requiredFields = ['title', 'author', 'year', 'genre'];
+  const missingFields = requiredFields.filter((field) => !bookObject[field]);
+  if (missingFields.length > 0) {
+    return res.status(400).json({ message: `Donnée manquante: ${missingFields.join(', ')}` });
+  }
+  //check if the rating is empty
+  if (bookObject.ratings[0].grade === 0) {
+    return res.status(400).json({ message: `Donnée manquante: une note de livre.` });
+  }
+  // Check if the year of publication data is an integer number
+  if (!Number.isInteger(Number(bookObject['year']))) {
+    return res.status(400).json({ message: `L'année de publication doit être un nombre.` });
+  }
+  // Reorganize book's data
+  delete bookObject._id;
+  delete bookObject._userId;
+  const book = new Book({
+    ...bookObject,
+    userId: req.auth.userId,
+    imageUrl: `https://${bucketName}.s3.${region}.amazonaws.com/${req.file.filename}`
+  });
+
+  book.save()
+    .then(() => { res.status(201).json({ message: 'Objet enregistré !' }) })
+    .catch(error => { res.status(400).json({ error }) })
+};
 // Get all books' data
- exports.getAllBooks = (req, res, next) => {
-    Book.find().then(
-      (books) => {
-        res.status(200).json(books);
-      }
-    ).catch(
-      (error) => {
-        res.status(400).json({
-          error: error
-        });
-      }
-    );
-  };
+exports.getAllBooks = (req, res, next) => {
+  Book.find().then(
+    (books) => {
+      res.status(200).json(books);
+    }
+  ).catch(
+    (error) => {
+      res.status(400).json({
+        error: error
+      });
+    }
+  );
+};
 // Get one book's data
-  exports.getOneBook = (req, res, next) => {
-    Book.findOne({
-      _id: req.params.id
-    }).then(
-      (book) => {
-        res.status(200).json(book);
-      }
-    ).catch(
-      (error) => {
-        res.status(404).json({
-          error: error
-        });
-      }
-    );
-  };
+exports.getOneBook = (req, res, next) => {
+  Book.findOne({
+    _id: req.params.id
+  }).then(
+    (book) => {
+      res.status(200).json(book);
+    }
+  ).catch(
+    (error) => {
+      res.status(404).json({
+        error: error
+      });
+    }
+  );
+};
 // Get top three books with the highest ratings
-  exports.bestThree = ( req, res, next) =>{
-    Book.find().sort({ averageRating: -1 }).limit(3).then(
-        (books) => {
-            res.status(200).json(books);
-        }
-    ).catch(
-        (error) => {
-            res.status(404).json({
-                error: error
-            });
-        }
-    );
-  };
+exports.bestThree = (req, res, next) => {
+  Book.find().sort({ averageRating: -1 }).limit(3).then(
+    (books) => {
+      res.status(200).json(books);
+    }
+  ).catch(
+    (error) => {
+      res.status(404).json({
+        error: error
+      });
+    }
+  );
+};
 // Delete one book
-  exports.deleteBook =  (req, res, next) => {
-    
-    Book.findOne({ _id: req.params.id})
-        .then(async book => {
-            if (book.userId != req.auth.userId) {
-                res.status(403).json({message: 'unauthorized request'});
-            } else {
-              //   await s3.deleteObject({
-              //     Bucket: process.env.S3_BUCKET_NAME,
-              //     Key: book.imageUrl
-              // }, (err, data) => {
-              //     if (err) {
-              //         // Handle error
-              //         res.status(401).json({message: `aws error : ${error}`});
-              //     } else {
-                      // Delete book from database
-                      Book.deleteOne({_id: req.params.id})
-                          .then(() => { res.status(200).json({message: 'Objet supprimé !'})})
-                          .catch(error => res.status(401).json({ error }));
-              //     }
-              // }).promise();
-            }
-        })
-        .catch( error => {
-          res.status(500).json({ error });
-        });
- };
+exports.deleteBook = (req, res, next) => {
+
+  Book.findOne({ _id: req.params.id })
+    .then(async book => {
+      if (book.userId != req.auth.userId) {
+        res.status(403).json({ message: 'unauthorized request' });
+      } else {
+        //   await s3.deleteObject({
+        //     Bucket: process.env.S3_BUCKET_NAME,
+        //     Key: book.imageUrl
+        // }, (err, data) => {
+        //     if (err) {
+        //         // Handle error
+        //         res.status(401).json({message: `aws error : ${error}`});
+        //     } else {
+        // Delete book from database
+        Book.deleteOne({ _id: req.params.id })
+          .then(() => { res.status(200).json({ message: 'Objet supprimé !' }) })
+          .catch(error => res.status(401).json({ error }));
+        //     }
+        // }).promise();
+      }
+    })
+    .catch(error => {
+      res.status(500).json({ error });
+    });
+};
 // Update one book
- exports.modifyBook = ( req, res, next ) => {
-    const bookObject = req.file ? {
-        ...JSON.parse(req.body.book),
-        imageUrl: `https://${bucketName}.s3.${region}.amazonaws.com/${req.file.filename}`
-    } : { ...req.body };
-    // Check if the form data fields is empty
-    const requiredFields = ['title', 'author', 'year', 'genre'];
-    const missingFields = requiredFields.filter((field) => !bookObject[field]);
-    if (missingFields.length > 0) {
-      return res.status(400).json({ message: `Vous devez ajouter: ${missingFields.join(', ')}` });
-    }
-    // Check if the year of publication data is an integer
-    if ( !Number.isInteger(Number(bookObject['year']))) {
-      return res.status(400).json({ message: `L'année de publication doit être un nombre !` });
-    }
-    delete bookObject._userId;
-    Book.findOne({_id: req.params.id})
-        .then((book) => {
-            if (book.userId != req.auth.userId) {
-                res.status(403).json({ message : 'unauthorized request'});
-            } else {
-                Book.updateOne({ _id: req.params.id}, { ...bookObject, _id: req.params.id})
-                .then(() => res.status(200).json({message : 'Objet modifié!'}))
-                .catch(error => res.status(401).json({ error }));
-            }
-        })
-        .catch((error) => {
-            res.status(400).json({ error });
-        });
- };
+exports.modifyBook = (req, res, next) => {
+  const bookObject = req.file ? {
+    ...JSON.parse(req.body.book),
+    imageUrl: `https://${bucketName}.s3.${region}.amazonaws.com/${req.file.filename}`
+  } : { ...req.body };
+  // Check if the form data fields is empty
+  const requiredFields = ['title', 'author', 'year', 'genre'];
+  const missingFields = requiredFields.filter((field) => !bookObject[field]);
+  if (missingFields.length > 0) {
+    return res.status(400).json({ message: `Vous devez ajouter: ${missingFields.join(', ')}` });
+  }
+  // Check if the year of publication data is an integer
+  if (!Number.isInteger(Number(bookObject['year']))) {
+    return res.status(400).json({ message: `L'année de publication doit être un nombre !` });
+  }
+  delete bookObject._userId;
+  Book.findOne({ _id: req.params.id })
+    .then((book) => {
+      if (book.userId != req.auth.userId) {
+        res.status(403).json({ message: 'unauthorized request' });
+      } else {
+        Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
+          .then(() => res.status(200).json({ message: 'Objet modifié!' }))
+          .catch(error => res.status(401).json({ error }));
+      }
+    })
+    .catch((error) => {
+      res.status(400).json({ error });
+    });
+};
 // Update one book's rating when other users gave a note
- exports.modifyRating = (req, res, next) => {
+exports.modifyRating = (req, res, next) => {
   const filter = { _id: req.params.id };
   const update = { $push: { ratings: { userId: req.body.userId, grade: req.body.rating } } };
   const options = { new: true };
@@ -167,6 +156,6 @@ exports.createBook = (req, res, next) => {
     .then(updatedBook => res.status(200).json(updatedBook))
     .catch(error => {
       res.status(400).json({ error });
-  });
-    
- };
+    });
+
+};
